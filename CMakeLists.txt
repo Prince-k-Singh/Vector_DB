@@ -15,3 +15,8 @@ add_executable(test_vector_record
 add_executable(test_vector_store
     tests/test_vector_store.cpp
 )
+
+add_executable(test_flat_search
+    tests/test_flat_search.cpp
+    src/flat_search.cpp
+)

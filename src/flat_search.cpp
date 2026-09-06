@@ -3,6 +3,7 @@
 #include <cmath>
 #include <queue>
 #include <stdexcept>
+#include <algorithm>
 
 
 std::vector<int> flat_search(
