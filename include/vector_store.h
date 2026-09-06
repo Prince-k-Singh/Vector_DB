@@ -15,7 +15,7 @@ class vector_storeIO{
             if(!file.open()){
                 throw std::runtime_error("fuck");
             }
-            int dim,id=0;
+            int dim=-1,id=0;
             while(file.read(reinterpret_cast<char*>(&dim),sizeof(dim))){
                 if(dim>0){
                     Vector_Record<T> record;
