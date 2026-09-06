@@ -4,6 +4,7 @@
 #include <queue>
 #include <stdexcept>
 
+
 std::vector<int> flat_search(
     const std::vector<float>& query,
     const std::vector<VectorRecord<float>>& base,
