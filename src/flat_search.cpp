@@ -1,73 +1,66 @@
-#include <vector>
+#include "flat_search.h"
+
+#include <cmath>
 #include <queue>
-#include <utility>
-#include <cstddef>
+#include <stdexcept>
 
-struct VectorRecordFloat {
-    int id;
-    std::vector<float> vector;
-};
-
-/* Squared L2 distance */
-float squared_l2(
-    const std::vector<float>& a,
-    const std::vector<float>& b
-) {
-    float dist = 0.0f;
-
-    for (size_t i = 0; i < a.size(); i++) {
-        float diff = a[i] - b[i];
-        dist += diff * diff;
-    }
-
-    return dist;
-}
-
-
-/* Brute-force kNN search */
 std::vector<int> flat_search(
     const std::vector<float>& query,
-    const std::vector<VectorRecordFloat>& base,
-    int k
+    const std::vector<VectorRecord<float>>& base,
+    size_t k
 ) {
-    // Max-heap:
-    // pair.first  = distance
-    // pair.second = vector ID
-    std::priority_queue<
-        std::pair<float, int>
-    > pq;
+    if (k == 0 || base.empty()) {
+        return {};
+    }
 
-    // Check every vector in the dataset
+    if (k > base.size()) {
+        k = base.size();
+    }
+
+    // Max-heap:
+    // pair = (distance, vector_id)
+    std::priority_queue<std::pair<float, int>> pq;
+
+    // Scan every vector in the database
     for (const auto& record : base) {
 
-        // Calculate squared L2 distance
-        float dist = squared_l2(query, record.vector);
-
-        // If we don't have k elements yet,
-        // simply insert this vector.
-        if ((int)pq.size() < k) {
-            pq.push({dist, record.id});
+        if (record.vector.size() != query.size()) {
+            throw std::runtime_error(
+                "Query and database vector dimensions do not match"
+            );
         }
 
-        // Otherwise, compare against the worst
-        // vector currently present in the heap.
-        else if (dist < pq.top().first) {
+        // Calculate squared L2 distance
+        float distance = 0.0f;
+
+        for (size_t i = 0; i < query.size(); ++i) {
+            float diff = query[i] - record.vector[i];
+            distance += diff * diff;
+        }
+
+        // Add until we have k elements
+        if (pq.size() < k) {
+            pq.push({distance, record.id});
+        }
+        // If this vector is better than the worst
+        // vector currently in the heap
+        else if (distance < pq.top().first) {
             pq.pop();
-            pq.push({dist, record.id});
+            pq.push({distance, record.id});
         }
     }
 
-    // Extract IDs.
-    // Since this is a max-heap, we get
-    // farthest -> closest.
+    // Extract IDs from the max-heap
     std::vector<int> result;
+    result.reserve(pq.size());
 
     while (!pq.empty()) {
         result.push_back(pq.top().second);
         pq.pop();
     }
 
-    // Reverse to get closest -> farthest.
+    // Heap gives farthest -> closest,
+    // so reverse to get closest -> farthest.
     std::reverse(result.begin(), result.end());
 
     return result;
