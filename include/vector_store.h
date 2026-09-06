@@ -1,38 +1,64 @@
-#ifndef VECTOR_STOREIO
-#define VECTOR_STOREIO
+#pragma once
 
-#include<iostream>
-#include<vector>
-#include<fstream>
-#include"vector_record.h"
+#include <cstdint>
+#include <fstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-template<typename T>
-class vector_storeIO{
-    public:
-        static std::vector<VectorRecord<T>> read_vecs(const std::string& file_path){
-            std::vector<Vector_Record<T>> all_records;
-            std::ifstream file(file_path,std::ios::binary);
-            if(!file.open()){
-                throw std::runtime_error("fuck");
-            }
-            int dim=-1,id=0;
-            while(file.read(reinterpret_cast<char*>(&dim),sizeof(dim))){
-                if(dim>0){
-                    Vector_Record<T> record;
-                    record.vector.resize(dim);
-                    record.id=id;
-                    id++;
-                    for(int i=0;i<dim;i++){
-                        if(!file.read(reinterpret_cast<char*>(&record.vector[i]),sizeof(T))){
-                            throw std::runtime_error("Noo");
-                        }
-                    }
-                    all_records.push_back(record);
-                }
-            }
-            return all_records;
+#include "vector_record.h"
+
+class VectorStoreIO {
+public:
+    template <typename T>
+    static std::vector<VectorRecord<T>> read_vecs(
+        const std::string& file_path
+    ) {
+        std::ifstream file(file_path, std::ios::binary);
+
+        // Check whether the file was opened successfully
+        if (!file.is_open()) {
+            throw std::runtime_error(
+                "Failed to open file: " + file_path
+            );
         }
+
+        std::vector<VectorRecord<T>> records;
+        int id = 0;
+
+        while (true) {
+            // Every vector begins with a 4-byte dimension
+            int32_t dim;
+
+            if (!file.read(
+                    reinterpret_cast<char*>(&dim),
+                    sizeof(dim)
+                )) {
+                break;  // EOF
+            }
+
+            // Create a record
+            VectorRecord<T> record;
+            record.id = id++;
+
+            // Allocate space for the vector
+            record.vector.resize(dim);
+
+            // Read the actual vector data
+            if (!file.read(
+                    reinterpret_cast<char*>(record.vector.data()),
+                    static_cast<std::streamsize>(
+                        dim * sizeof(T)
+                    )
+                )) {
+                throw std::runtime_error(
+                    "Unexpected end of file while reading vector data"
+                );
+            }
+
+            records.push_back(std::move(record));
+        }
+
+        return records;
+    }
 };
-
-
-#endif
